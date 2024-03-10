@@ -49,6 +49,7 @@ export default function SignIn() {
     try {
       const response = await axios.post('http://localhost:8080/login', formData);
       const username = response.data.username;
+      localStorage.setItem("token", response.data.token)
       console.log(response.data)
       navigate('/home-page', {state : { username }});
     } catch(error){
@@ -129,7 +130,7 @@ export default function SignIn() {
             </Grid>
           </Box>
         </Box>
-        <Copyright sx={{ mt: 8, mb: 4 }} />
+        {/* <Copyright sx={{ mt: 8, mb: 4 }} /> */}
       </Container>
     </ThemeProvider>
   );

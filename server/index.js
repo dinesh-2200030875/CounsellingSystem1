@@ -1,21 +1,42 @@
 const express = require('express')
 const cors = require('cors')
 const {MongoClient,ObjectId} = require('mongodb')
+const jwt = require('jsonwebtoken');
+const {expressjwt: exjwt} = require('express-jwt')
+const jwt_decode = require('jwt-decode')
 
 const app=express()
 
 app.use(cors())
 app.use(express.json())
+
+secretkey = "abcd"
+algorithm = "HS256"
+
+const jwtmw = exjwt({
+    secret: secretkey,
+    algorithms: [algorithm]
+})
+
 const client =new MongoClient('mongodb+srv://admin:admin@cluster0.9qyfbnh.mongodb.net/?retryWrites=true&w=majority')
 client.connect()
 const db = client.db('Student')
 const col = db.collection('register')
+const col1 = db.collection('appointments')
+
 //col.insertOne({'student':"123"})
 
 app.post('/register', (req, res)=>{
 col.insertOne(req.body)
 console.log(req.body)
 res.send('Inserted successfully')
+})
+
+app.post('/appointments',  (req, res) => {
+    col1.insertOne(req.body)
+    console.log(req.body)
+    res.send('Inserted successfully')
+    
 })
 
 app.post('/login', async (req, res) => {
@@ -27,8 +48,8 @@ app.post('/login', async (req, res) => {
     if(!user || !(password === user.password)){
         return res.status(401).json({message: 'Invalid email or password'});
     }
-
-    res.json({username: user.name});
+    const token = jwt.sign(user, secretkey, {algorithm: algorithm, expiresIn: '1m' });
+    res.json({ username:user.name, token: token});
     }
     else
     {
@@ -38,12 +59,20 @@ app.post('/login', async (req, res) => {
 });
 
 
-app.get('/retrive', async (req, res)=>{
+app.get('/retrive', jwtmw, async (req, res)=>{
+    //console.log(jwt_decode.jwtDecode(req.headers.authorization.substring(7)));
     const result= await col.find().toArray()
     console.log(result)
     res.send(result)
 })
 
+app.get('/retriveappointments', async (req, res)=>{
+    const result= await col1.find().toArray()
+    console.log(result)
+    res.send(result)
+})
+
+//signupand signin
 app.put('/users/:id', async (req,res)=>{ 
     const {id}= req.params 
     const {name, role, email, password}=req.body 
@@ -56,6 +85,9 @@ app.delete('/users/:id', async (req, res)=>{
     const result=await col.deleteOne({_id : new ObjectId(id)})
     res.json({message:"Delete successfully"})
 })
+
+
+
 
 app.get('/', (req,res)=>{
     res.send('<h1>Hello World</h1>')
